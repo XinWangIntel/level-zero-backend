@@ -5,20 +5,20 @@
 #include "pmlc/rt/runtime_registry.h"
 #include "pmlc/util/logging.h"
 
-#include "pmlc/rt/opencl/opencl_device.h"
+#include "opencl_device.h"
 
-namespace pmlc::rt::opencl {
+namespace pmlc::rt::level_zero {
 
-class OpenCLRuntime final : public pmlc::rt::Runtime {
+class LevelZeroRuntime final : public pmlc::rt::Runtime {
 public:
-  OpenCLRuntime() {
-    std::vector<cl::Device> supportedDevices =
-        pmlc::rt::opencl::getSupportedDevices();
-    for (cl::Device &device : supportedDevices)
-      devices.emplace_back(std::make_shared<OpenCLDevice>(device));
+  LevelZeroRuntime() {
+    std::vector<ze_device_handle_t> supportedDevices =
+        pmlc::rt::level_zero::getSupportedDevices();
+    for (ze_device_handle_t &device : supportedDevices)
+      devices.emplace_back(std::make_shared<LevelZeroDevice>(device));
   }
 
-  ~OpenCLRuntime() {}
+  ~LevelZeroRuntime() {}
 
   std::size_t deviceCount() const noexcept final { return devices.size(); }
   std::shared_ptr<pmlc::rt::Device> device(std::size_t idx) override {
@@ -26,9 +26,9 @@ public:
   }
 
 private:
-  std::vector<std::shared_ptr<OpenCLDevice>> devices;
+  std::vector<std::shared_ptr<LevelZeroDevice>> devices;
 };
 
-pmlc::rt::RuntimeRegistration<OpenCLRuntime> reg{"opencl"};
+pmlc::rt::RuntimeRegistration<LevelZeroRuntime> reg{"level_zero"};
 
-} // namespace pmlc::rt::opencl
+} // namespace pmlc::rt::level_zero

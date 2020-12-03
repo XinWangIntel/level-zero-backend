@@ -4,7 +4,7 @@
 #include "pmlc/rt/symbol_registry.h"
 #include "pmlc/util/logging.h"
 
-namespace pmlc::rt::opencl {
+namespace pmlc::rt::level_zero {
 namespace {
 template <typename T>
 void *castMemrefToPtr(::UnrankedMemRefType<T> *unrankedMemRef) {
@@ -49,4 +49,4 @@ struct Registration {
 };
 static Registration reg;
 } // namespace
-} // namespace pmlc::rt::opencl
+} // namespace pmlc::rt::level_zero

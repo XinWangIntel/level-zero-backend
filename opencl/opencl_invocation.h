@@ -5,32 +5,32 @@
 #include <string>
 #include <vector>
 
-#include "pmlc/rt/opencl/opencl_device.h"
+#include "opencl_device.h"
 
-namespace pmlc::rt::opencl {
-class OpenCLEvent;
+namespace pmlc::rt::level_zero {
+class LevelZeroEvent;
 
-/// Class encapsulating OpenCL memory buffer allocated on device.
-class OpenCLMemory {
+/// Class encapsulating level zero memory buffer allocated on device.
+class LevelZeroMemory {
 public:
-  OpenCLMemory(cl::Buffer buffer, size_t bytes)
+  LevelZeroMemory(void* buffer, size_t bytes)
       : buffer(buffer), bytes(bytes) {}
 
   /// Returns OpenCL buffer.
-  cl::Buffer getBuffer() { return buffer; }
+  void* getBuffer() { return buffer; }
   /// Returns size of buffer in bytes.
   size_t size() { return bytes; }
   /// Enqueues read operation from this buffer into `dst` pointer
   /// on specified command queue.
-  cl::Event enqueueRead(cl::CommandQueue queue, void *dst,
-                        const std::vector<cl::Event> &dependencies);
+  ze_event_handle_t enqueueRead(ze_command_list_handle_t list, void *dst,
+                        const std::vector<ze_event_handle_t> &dependencies);
   /// Enqueues write operation from `src` pointer into this buffer
   /// on specified command queue.
-  cl::Event enqueueWrite(cl::CommandQueue queue, void *src,
-                         const std::vector<cl::Event> &dependencies);
+  ze_event_handle_t enqueueWrite(ze_command_list_handle_t list, void *src,
+                         const std::vector<ze_event_handle_t> &dependencies);
 
 private:
-  cl::Buffer buffer;
+  void* buffer;
   size_t bytes;
 };
 
@@ -38,92 +38,92 @@ private:
 /// name and event dependencies.
 /// Serves as one time incremental object, `enqueue()` should be
 /// called only once and does not reset it's internal state.
-class OpenCLKernel {
+class LevelZeroKernel {
 public:
   /// Constructs kernel declared with `name` from compiled `program`.
-  OpenCLKernel(cl::Program program, std::string name);
+  LevelZeroKernel(ze_module_handle_t module, std::string name);
 
   /// Adds event dependency that must be completed before this kernel.
-  void addDependency(OpenCLEvent *event);
+  void addDependency(ze_event_handle_t event);
   /// Sets kernel argument `idx` to `memory`.
-  void setArg(unsigned idx, OpenCLMemory *memory);
+  void setArg(unsigned idx, LevelZeroMemory *memory);
   /// Enqueues wrapped kernel on specified command queue `queue` with
   /// `gws` global work size and `lws` local work size.
   /// Returns OpenCL event tracking execution of kernel execution.
-  cl::Event enqueue(cl::CommandQueue queue, cl::NDRange gws, cl::NDRange lws);
+  ze_event_handel_t enqueue(ze_command_list_handle_t list, ze_group_count_t gws, ze_group_count_t lws);
   /// Returns name of this kernel.
   const std::string &getName() const { return name; }
 
 private:
-  cl::Kernel kernel;
+  ze_kernel_handle_t kernel;
   std::string name;
-  std::vector<cl::Event> dependencies;
+  std::vector<ze_event_handle_t> dependencies;
 };
 
 /// Kind of asynchronous operation executed on OpenCL device.
-enum class OpenCLActionKind { Barrier, Kernel, Read, Write };
+enum class LevelZeroActionKind { Barrier, Kernel, Read, Write };
 
 /// Class encapsulating OpenCL event that describes status of
 /// operation that produced it and serves for ordering operations.
-class OpenCLEvent {
+class LevelZeroEvent {
 public:
-  OpenCLEvent(cl::Event event, OpenCLActionKind kind, std::string name);
+  LevelZeroEvent(ze_event_handle_t event, LevelZeroActionKind kind, std::string name);
 
   /// Returns OpenCL event object.
-  cl::Event getEvent() const { return event; }
+  ze_event_handle_t getEvent() const { return event; }
   /// Returns kind of operation that this event describes.
-  OpenCLActionKind getKind() const { return kind; }
+  LevelZeroActionKind getKind() const { return kind; }
   /// Returns name of operation that this event describes.
   const std::string &getName() const { return name; }
 
   /// Blocks execution untill all `events` have finished executing.
-  static void wait(const std::vector<OpenCLEvent *> &events);
+  static void wait(const std::vector<ze_event_handle_t> &events);
 
 private:
-  cl::Event event;
-  OpenCLActionKind kind;
+  ze_event_handle_t event;
+  LevelZeroActionKind kind;
   std::string name;
 };
 
 // OpenCLInvocation encapsulates a particular run of a network on a OpenCL
 // device. It's instantiated and managed from the JITted network code, using
 // callbacks in opencl_wrappers.cc.
-class OpenCLInvocation {
+class LevelZeroInvocation {
 public:
-  explicit OpenCLInvocation(OpenCLDevice *device);
-  ~OpenCLInvocation();
+  explicit LevelZeroInvocation(LevelZeroDevice *device);
+  ~LevelZeroInvocation();
 
   /// Allocates memory on OpenCL device with specified size in bytes.
-  OpenCLMemory *allocateMemory(size_t bytes);
+  LevelZeroMemory *allocateMemory(size_t bytes);
   /// Releases memory obtained from `allocateMemory` call.
   /// Any further use of `memory` is invalid.
-  void deallocateMemory(OpenCLMemory *memory);
+  void deallocateMemory(LevelZeroMemory *memory);
   /// Enqueues operation to read data from `src` memory into `dst` pointer.
   /// Read will start executing only after operations connected to `deps`
   /// events are finished.
   /// Returns event describing status of this operation.
-  OpenCLEvent *enqueueRead(OpenCLMemory *src, void *dst,
-                           const std::vector<OpenCLEvent *> &deps);
+  LevelZeroEvent *enqueueRead(LevelZeroMemory *src, void *dst,
+                           const std::vector<LevelZeroEvent *> &deps);
   /// Enqueues operation to write data from `src` pointer into `dst` memory.
   /// Write will start executing only after operations connected to `deps`
   /// events are finished.
   /// Returns event describing status of this operation.
-  OpenCLEvent *enqueueWrite(OpenCLMemory *dst, void *src,
-                            const std::vector<OpenCLEvent *> &deps);
+  LevelZeroEvent *enqueueWrite(LevelZeroMemory *dst, void *src,
+                            const std::vector<LevelZeroEvent *> &deps);
   /// Creates OpenCL kernel from SPIRV binary.
-  OpenCLKernel *createKernelFromIL(char *data, size_t bytes, const char *name);
+  LevelZeroKernel *createKernelFromIL(char *data, size_t bytes, const char *name);
   /// Enqueues kernel execution on device with specified global and local work
   /// sizes. Kernel object is destroyed after this function finishes. Returns
   /// event describing status of kernel execution.
-  OpenCLEvent *enqueueKernel(OpenCLKernel *kernel, cl::NDRange gws,
-                             cl::NDRange lws);
+  LevelZeroEvent *enqueueKernel(LevelZeroKernel *kernel, ze_group_count_t gws,
+                             ze_group_count_t lws);
   /// Enqueues barrier operation on device. Barrier serves as synchronization
   /// primitive that ensures all operations enqueued after it finishes will
   /// start executing only after all operations before have finished.
   /// Barrier goes into effect after dependant events `deps` are finished
   /// or immiediately if `deps` is empty.
   /// Returns event describing status of this barrier operation.
-  OpenCLEvent *enqueueBarrier(const std::vector<OpenCLEvent *> &deps);
+  LevelZeroEvent *enqueueBarrier(const std::vector<LevelZeroEvent *> &deps);
   /// Forces starting execution of previosuly enqueued operations that aren't
   /// blocked by any dependencies.
   void flush();
@@ -131,12 +131,12 @@ public:
   void finish();
 
 private:
-  std::shared_ptr<OpenCLDevice> device;
-  OpenCLQueueUser queueUser;
-  std::vector<std::unique_ptr<OpenCLEvent>> events;
+  std::shared_ptr<LevelZeroDevice> device;
+  LevelZeroQueueUser queueUser;
+  std::vector<std::unique_ptr<LevelZeroEvent>> events;
 
-  OpenCLEvent *wrapEvent(cl::Event event, OpenCLActionKind kind,
+  LevelZeroEvent *wrapEvent(ze_event_handle_t event, LevelZeroActionKind kind,
                          std::string name);
 };
 
-} // namespace pmlc::rt::opencl
+} // namespace pmlc::rt::level_zero

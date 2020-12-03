@@ -1,11 +1,11 @@
 // Copyright 2020 Intel Corporation
-#include "pmlc/rt/opencl/opencl_utils.h"
+#include "opencl_utils.h"
 
 #include <string>
 #include <vector>
 
-namespace pmlc::rt::opencl {
-
+namespace pmlc::rt::level_zero {
+#if 0
 // Returns OpenCL version as decimal number, ie:
 // OpenCL 1.2 - 120, OpenCL 2.2 - 220
 static unsigned extractOpenCLVersion(const std::string &versionString) {
@@ -24,7 +24,8 @@ static unsigned extractOpenCLVersion(const std::string &versionString) {
   }
   return version * 10;
 }
-
+#endif
+#if 0
 static bool isPlatformSupported(const cl::Platform &p) {
   std::string platformVersion = p.getInfo<CL_PLATFORM_VERSION>();
   unsigned versionNum = extractOpenCLVersion(platformVersion);
@@ -32,25 +33,14 @@ static bool isPlatformSupported(const cl::Platform &p) {
     return false;
   return true;
 }
-
-std::vector<cl::Device> getSupportedDevices() {
-  std::vector<cl::Platform> platforms;
-  try {
-    cl::Platform::get(&platforms);
-  } catch (const cl::Error &e) {
-    if (CL_PLATFORM_NOT_FOUND_KHR != e.err())
-      throw;
-  }
-  std::vector<cl::Device> supportedDevices;
-  for (auto &p : platforms) {
-    if (!isPlatformSupported(p))
-      continue;
-    std::vector<cl::Device> devices;
-    p.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-    supportedDevices.insert(supportedDevices.end(), devices.begin(),
-                            devices.end());
+#endif
+std::vector<ze_device_handle_t> getSupportedDevices() {
+  std::vector<ze_device_handle_t> supportedDevices;
+  for(auto driver : lzt::get_all_driver_handles()) {
+      for(auto device : lzt::get_devices(driver))
+          supportedDevices.push_back(device);
   }
   return supportedDevices;
 }
 
-} // namespace pmlc::rt::opencl
+} // namespace pmlc::rt::level_zero

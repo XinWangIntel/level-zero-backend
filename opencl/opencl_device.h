@@ -5,72 +5,75 @@
 #include <memory>
 #include <vector>
 
-#include "pmlc/rt/opencl/opencl_utils.h"
+#include "opencl_utils.h"
 #include "pmlc/rt/runtime.h"
 
-namespace pmlc::rt::opencl {
+namespace pmlc::rt::level_zero {
 
 /// OpenCL command queue wrapper.
-class OpenCLQueue {
+class LevelZeroQueue {
 public:
-  OpenCLQueue(const cl::Context &context, const cl::Device &device,
-              cl::QueueProperties properties);
+  LevelZeroQueue(const ze_context_handle_t &context, const ze_device_handle_t &device,
+              ze_command_queue_group_properties_t properties);
 
-  /// Returns wrapped OpenCL queue.
-  cl::CommandQueue getOclQueue() { return queue; }
+  /// Returns wrapped level_zero queue.
+  ze_command_queue_handle_t getLevelZeroQueue() { return queue; }
+  ze_command_list_handle_t getLevelZeroList() { return list; }
   /// Returns properties wrapped OpenCL queue was created with.
-  cl::QueueProperties getOclProperties() { return properties; }
+  ze_command_queue_group_properties_t getLevelZeroProperties() { return properties; }
 
 private:
-  cl::CommandQueue queue;
-  cl::QueueProperties properties;
+  ze_command_queue_handle_t queue;
+  ze_command_list_handle_t list;
+  ze_command_queue_group_properties_t properties;
 };
 
-class OpenCLQueueGuard;
+class LevelZeroQueueGuard;
 
 /// Class providing RAII idiomatic way for reserving OpenCLQueue for use.
 /// This class is not intended to be created manually, instead instance
 /// should be obtained from OpenCLDevice.
 /// Upon destruction this queue will be released and made availiable for
 /// future reuse.
-class OpenCLQueueUser {
+class LevelZeroQueueUser {
 public:
-  /// Creates null user not referencing any OpenCL queue.
-  OpenCLQueueUser();
+  /// Creates null user not referencing any level zero queue.
+  LevelZeroQueueUser();
   /// Deleted copy constructor.
-  OpenCLQueueUser(const OpenCLQueueUser &copy) = delete;
+  LevelZeroQueueUser(const LevelZeroQueueUser &copy) = delete;
   /// Custom move constructor.
-  OpenCLQueueUser(OpenCLQueueUser &&move);
-  /// Custom destructor - releases use from OpenCLQueueGuard.
-  ~OpenCLQueueUser();
+  LevelZeroQueueUser(LevelZeroQueueUser &&move);
+  /// Custom destructor - releases use from LevelZeroQueueGuard.
+  ~LevelZeroQueueUser();
   /// Deleted copy assignment.
-  OpenCLQueueUser &operator=(const OpenCLQueueUser &) = delete;
+  LevelZeroQueueUser &operator=(const LevelZeroQueueUser &) = delete;
 
-  /// Returns OpenCL queue this user has reserved.
-  cl::CommandQueue getOclQueue() { return queue->getOclQueue(); }
+  /// Returns level zero queue this user has reserved.
+  ze_command_queue_handle_t getLevelZeroQueue() { return queue->getLevelZeroQueue(); }
+  ze_command_list_handle_t getLevelZeroList() { return queue->getLevelZeroList(); }
   /// Returns properties of reserved queue.
-  cl::QueueProperties getOclProperties() { return queue->getOclProperties(); }
+  ze_command_queue_group_properties_t getLevelZeroProperties() { return queue->getLevelZeroProperties(); }
   /// Returns true if this is non-empty user.
   operator bool() const { return nullptr != guard; }
 
 private:
-  OpenCLQueueUser(OpenCLQueueGuard *guard, OpenCLQueue *queue);
+  LevelZeroQueueUser(LevelZeroQueueGuard *guard, LevelZeroQueue *queue);
 
-  OpenCLQueueGuard *guard;
-  OpenCLQueue *queue;
+  LevelZeroQueueGuard *guard;
+  LevelZeroQueue *queue;
   // Friendship definition needed to access private constructor.
-  friend class OpenCLQueueGuard;
+  friend class LevelZeroQueueGuard;
 };
 
-/// Class guarding access to OpenCLQueue that can have only one user,
-/// represented as OpenCLQueueUser.
-class OpenCLQueueGuard {
+/// Class guarding access to LevelZeroQueue that can have only one user,
+/// represented as LevelZeroQueueUser.
+class LevelZeroQueueGuard {
 public:
-  explicit OpenCLQueueGuard(OpenCLQueue queue, bool init = false)
+  explicit LevelZeroQueueGuard(LevelZeroQueue queue, bool init = false)
       : used(init), queue(queue) {}
 
   /// Returns properties of contained queue.
-  cl::QueueProperties getOclProperties() { return queue.getOclProperties(); }
+  ze_command_queue_group_properties_t getLevelZeroProperties() { return queue.getLevelZeroProperties(); }
   /// Checks if this queue is currently in use. Does not guarantee that
   /// subsequent calls to use() will return non-empty user in
   /// multithreaded scenerios.
@@ -78,39 +81,39 @@ public:
   /// Tries to reserve queue for use and returns corresponding user.
   /// If queue is currently in use and cannot be reserved returns
   /// empty user.
-  OpenCLQueueUser use();
+  LevelZeroQueueUser use();
 
 private:
   std::atomic<bool> used;
-  OpenCLQueue queue;
+  LevelZeroQueue queue;
   // Fiendship definition to release guard when upon user destruction.
-  friend class OpenCLQueueUser;
+  friend class LevelZeroQueueUser;
 };
 
-/// OpenCL device abstraction.
-/// Purpose of this class is to manage OpenCL resources connected
+/// LevelZero device abstraction.
+/// Purpose of this class is to manage LevelZero resources connected
 /// to device.
-class OpenCLDevice final : public pmlc::rt::Device,
-                           public std::enable_shared_from_this<OpenCLDevice> {
+class LevelZeroDevice final : public pmlc::rt::Device,
+                           public std::enable_shared_from_this<LevelZeroDevice> {
 public:
-  explicit OpenCLDevice(cl::Device device);
+  explicit LevelZeroDevice(ze_device_handle_t device);
 
   std::unique_ptr<Executable>
   compile(const std::shared_ptr<pmlc::compiler::Program> &program) final;
 
-  /// Returns OpenCL context created with only this device.
-  cl::Context getOclContext() { return context; }
-  /// Returns OpenCL device.
-  cl::Device getOclDevice() { return device; }
-  /// Returns OpenCL queue with specified properties for execution
+  /// Returns LevelZero context created with only this device.
+  ze_context_handle_t getLevelZeroContext() { return context; }
+  /// Returns LevelZero device.
+  ze_device_handle_t getLevelZeroDevice() { return device; }
+  /// Returns LevelZero queue with specified properties for execution
   /// on this device. Returned user is always non-empty.
-  OpenCLQueueUser getQueue(cl::QueueProperties properties);
+  LevelZeroQueueUser getQueue(ze_command_queue_group_properties_t properties);
 
 private:
-  cl::Context context;
-  cl::Device device;
-  std::vector<std::unique_ptr<OpenCLQueueGuard>> queues;
+  ze_context_handle_t context;
+  ze_device_handle_t device;
+  std::vector<std::unique_ptr<LevelZeroQueueGuard>> queues;
   std::mutex queuesMutex;
 };
 
-} // namespace pmlc::rt::opencl
+} // namespace pmlc::rt::level_zero

@@ -3,101 +3,101 @@
 #include <cstdarg>
 #include <vector>
 
-#include "pmlc/rt/opencl/opencl_invocation.h"
+#include "opencl_invocation.h"
 #include "pmlc/rt/symbol_registry.h"
 #include "pmlc/util/logging.h"
 
-namespace pmlc::rt::opencl {
+namespace pmlc::rt::level_zero {
 
 extern "C" {
 
 void *oclCreate(void *device) {
-  return new OpenCLInvocation(static_cast<OpenCLDevice *>(device));
+  return new LevelZeroInvocation(static_cast<LevelZeroDevice *>(device));
 }
 
 void oclDestroy(void *invocation) {
-  delete static_cast<OpenCLInvocation *>(invocation);
+  delete static_cast<LevelZeroInvocation *>(invocation);
 }
 
 void *oclAlloc(void *invocation, size_t bytes) {
-  return static_cast<OpenCLInvocation *>(invocation)->allocateMemory(bytes);
+  return static_cast<LevelZeroInvocation *>(invocation)->allocateMemory(bytes);
 }
 
 void oclDealloc(void *invocation, void *memory) {
-  static_cast<OpenCLInvocation *>(invocation)
-      ->deallocateMemory(static_cast<OpenCLMemory *>(memory));
+  static_cast<LevelZeroInvocation *>(invocation)
+      ->deallocateMemory(static_cast<LevelZeroMemory *>(memory));
 }
 
 void *oclRead(void *dst, void *src, void *invocation, uint32_t count, ...) {
-  std::vector<OpenCLEvent *> dependencies;
+  std::vector<LevelZeroEvent *> dependencies;
   va_list args;
   va_start(args, count);
   for (unsigned i = 0; i < count; ++i)
-    dependencies.push_back(va_arg(args, OpenCLEvent *));
+    dependencies.push_back(va_arg(args, LevelZeroEvent *));
   va_end(args);
-  return static_cast<OpenCLInvocation *>(invocation)
-      ->enqueueRead(static_cast<OpenCLMemory *>(src), dst, dependencies);
+  return static_cast<LevelZeroInvocation *>(invocation)
+      ->enqueueRead(static_cast<LevelZeroMemory *>(src), dst, dependencies);
 }
 
 void *oclWrite(void *src, void *dst, void *invocation, uint32_t count, ...) {
-  std::vector<OpenCLEvent *> dependencies;
+  std::vector<LevelZeroEvent *> dependencies;
   va_list args;
   va_start(args, count);
   for (unsigned i = 0; i < count; ++i)
-    dependencies.push_back(va_arg(args, OpenCLEvent *));
+    dependencies.push_back(va_arg(args, LevelZeroEvent *));
   va_end(args);
-  return static_cast<OpenCLInvocation *>(invocation)
-      ->enqueueWrite(static_cast<OpenCLMemory *>(dst), src, dependencies);
+  return static_cast<LevelZeroInvocation *>(invocation)
+      ->enqueueWrite(static_cast<LevelZeroMemory *>(dst), src, dependencies);
 }
 
 void *oclCreateKernel(void *invocation, char *binary, uint32_t bytes,
                       const char *name) {
-  return static_cast<OpenCLInvocation *>(invocation)
+  return static_cast<LevelZeroInvocation *>(invocation)
       ->createKernelFromIL(binary, bytes, name);
 }
 
 void oclAddKernelDep(void *kernel, void *event) {
-  static_cast<OpenCLKernel *>(kernel)->addDependency(
-      static_cast<OpenCLEvent *>(event));
+  static_cast<LevelZeroKernel *>(kernel)->addDependency(
+      static_cast<LevelZeroEvent *>(event));
 }
 
 void oclSetKernelArg(void *kernel, uint32_t idx, void *memory) {
-  static_cast<OpenCLKernel *>(kernel)->setArg(
-      idx, static_cast<OpenCLMemory *>(memory));
+  static_cast<LevelZeroKernel *>(kernel)->setArg(
+      idx, static_cast<LevelZeroMemory *>(memory));
 }
 
 void *oclScheduleFunc(void *invocation, void *kernel, uint64_t gws0,
                       uint64_t gws1, uint64_t gws2, uint64_t lws0,
                       uint64_t lws1, uint64_t lws2) {
-  cl::NDRange gws(gws0, gws1, gws2);
-  cl::NDRange lws(lws0, lws1, lws2);
-  return static_cast<OpenCLInvocation *>(invocation)
-      ->enqueueKernel(static_cast<OpenCLKernel *>(kernel), gws, lws);
+  ze_group_count_t gws(gws0, gws1, gws2);
+  ze_group_count_t lws(lws0, lws1, lws2);
+  return static_cast<LevelZeroInvocation *>(invocation)
+      ->enqueueKernel(static_cast<LevelZeroKernel *>(kernel), gws, lws);
 }
 
 void *oclBarrier(void *invocation, uint32_t count, ...) {
-  std::vector<OpenCLEvent *> dependencies;
+  std::vector<LevelZeroEvent *> dependencies;
   va_list args;
   va_start(args, count);
   for (unsigned i = 0; i < count; ++i)
-    dependencies.push_back(va_arg(args, OpenCLEvent *));
+    dependencies.push_back(va_arg(args, LevelZeroEvent *));
   va_end(args);
-  return static_cast<OpenCLInvocation *>(invocation)
+  return static_cast<LevelZeroInvocation *>(invocation)
       ->enqueueBarrier(dependencies);
 }
 
 void oclSubmit(void *invocation) {
-  static_cast<OpenCLInvocation *>(invocation)->flush();
+  static_cast<LevelZeroInvocation *>(invocation)->flush();
 }
 
 void oclWait(uint32_t count, ...) {
-  std::vector<OpenCLEvent *> events;
+  std::vector<LevelZeroEvent *> events;
   va_list args;
   va_start(args, count);
   for (unsigned i = 0; i < count; ++i)
-    events.push_back(va_arg(args, OpenCLEvent *));
+    events.push_back(va_arg(args, LevelZeroEvent *));
   va_end(args);
-  OpenCLEvent::wait(events);
+  LevelZeroEvent::wait(events);
 }
 
 } // extern "C"
@@ -107,7 +107,7 @@ struct Registration {
   Registration() {
     using pmlc::rt::registerSymbol;
 
-    // OpenCL Runtime functions
+    // LevelZero Runtime functions
     registerSymbol("oclCreate", reinterpret_cast<void *>(oclCreate));
     registerSymbol("oclDestroy", reinterpret_cast<void *>(oclDestroy));
     registerSymbol("oclAlloc", reinterpret_cast<void *>(oclAlloc));
@@ -129,4 +129,4 @@ struct Registration {
 };
 static Registration reg;
 } // namespace
-} // namespace pmlc::rt::opencl
+} // namespace pmlc::rt::level_zero
