@@ -79,27 +79,52 @@ get_event_kernel_timestamp(ze_event_handle_t event) {
   return value;
 }
 
-void close_ipc_event_handle(ze_event_pool_handle_t eventPool) {
-  EXPECT_EQ(ZE_RESULT_SUCCESS, zeEventPoolCloseIpcHandle(eventPool));
+void zeEventPool::InitEventPool() { InitEventPool(32); }
+
+void zeEventPool::InitEventPool(uint32_t count) {
+  InitEventPool(count, ZE_EVENT_POOL_FLAG_HOST_VISIBLE);
+}
+void zeEventPool::InitEventPool(uint32_t count, ze_event_pool_flags_t flags) {
+  if (event_pool_ == nullptr) {
+    if (context_ == nullptr) {
+      context_ = lzt::get_default_context();
+    }
+    event_pool_ = create_event_pool(context_, count, flags);
+    pool_indexes_available_.resize(count, true);
+  }
 }
 
-void open_ipc_event_handle(ze_context_handle_t context,
-                           ze_ipc_event_pool_handle_t hIpc,
-                           ze_event_pool_handle_t *eventPool) {
-  EXPECT_EQ(ZE_RESULT_SUCCESS,
-            zeEventPoolOpenIpcHandle(context, hIpc, eventPool));
+void zeEventPool::InitEventPool(ze_context_handle_t context, uint32_t count) {
+  context_ = context;
+  if (event_pool_ == nullptr) {
+    if (context_ == nullptr) {
+      context_ = lzt::get_default_context();
+    }
+    event_pool_ =
+        create_event_pool(context_, count, ZE_EVENT_POOL_FLAG_HOST_VISIBLE);
+    pool_indexes_available_.resize(count, true);
+  }
 }
 
-void signal_event_from_host(ze_event_handle_t hEvent) {
-  EXPECT_EQ(ZE_RESULT_SUCCESS, zeEventHostSignal(hEvent));
+void zeEventPool::InitEventPool(ze_event_pool_desc_t desc) {
+  if (event_pool_ == nullptr) {
+    if (context_ == nullptr) {
+      context_ = lzt::get_default_context();
+    }
+    event_pool_ = create_event_pool(context_, desc);
+    pool_indexes_available_.resize(desc.count, true);
+  }
 }
 
-void event_host_synchronize(ze_event_handle_t hEvent, uint64_t timeout) {
-  EXPECT_EQ(ZE_RESULT_SUCCESS, zeEventHostSynchronize(hEvent, timeout));
-}
-
-void event_host_reset(ze_event_handle_t hEvent) {
-  EXPECT_EQ(ZE_RESULT_SUCCESS, zeEventHostReset(hEvent));
+void zeEventPool::InitEventPool(ze_event_pool_desc_t desc,
+                                std::vector<ze_device_handle_t> devices) {
+  if (event_pool_ == nullptr) {
+    if (context_ == nullptr) {
+      context_ = lzt::get_default_context();
+    }
+    event_pool_ = create_event_pool(context_, desc, devices);
+    pool_indexes_available_.resize(desc.count, true);
+  }
 }
 
 zeEventPool::zeEventPool() {}
@@ -181,5 +206,28 @@ void zeEventPool::destroy_events(std::vector<ze_event_handle_t> &events) {
 
 void zeEventPool::get_ipc_handle(ze_ipc_event_pool_handle_t *hIpc) {
   ASSERT_EQ(ZE_RESULT_SUCCESS, zeEventPoolGetIpcHandle(event_pool_, hIpc));
+}
+
+void close_ipc_event_handle(ze_event_pool_handle_t eventPool) {
+  EXPECT_EQ(ZE_RESULT_SUCCESS, zeEventPoolCloseIpcHandle(eventPool));
+}
+
+void open_ipc_event_handle(ze_context_handle_t context,
+                           ze_ipc_event_pool_handle_t hIpc,
+                           ze_event_pool_handle_t *eventPool) {
+  EXPECT_EQ(ZE_RESULT_SUCCESS,
+            zeEventPoolOpenIpcHandle(context, hIpc, eventPool));
+}
+
+void signal_event_from_host(ze_event_handle_t hEvent) {
+  EXPECT_EQ(ZE_RESULT_SUCCESS, zeEventHostSignal(hEvent));
+}
+
+void event_host_synchronize(ze_event_handle_t hEvent, uint64_t timeout) {
+  EXPECT_EQ(ZE_RESULT_SUCCESS, zeEventHostSynchronize(hEvent, timeout));
+}
+
+void event_host_reset(ze_event_handle_t hEvent) {
+  EXPECT_EQ(ZE_RESULT_SUCCESS, zeEventHostReset(hEvent));
 }
 }; // namespace level_zero_tests
