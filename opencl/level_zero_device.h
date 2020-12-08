@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-#include "opencl_utils.h"
+#include "pmlc/rt/level_zero/level_zero_utils.h"
 #include "pmlc/rt/runtime.h"
 
 namespace pmlc::rt::level_zero {

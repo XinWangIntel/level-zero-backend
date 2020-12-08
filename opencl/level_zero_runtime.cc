@@ -5,7 +5,7 @@
 #include "pmlc/rt/runtime_registry.h"
 #include "pmlc/util/logging.h"
 
-#include "opencl_device.h"
+#include "pmlc/rt/level_zero/level_zero_device.h"
 
 namespace pmlc::rt::level_zero {
 

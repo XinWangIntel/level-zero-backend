@@ -3,7 +3,7 @@
 #include <cstdarg>
 #include <vector>
 
-#include "opencl_invocation.h"
+#include "pmlc/rt/level_zero/level_zero_invocation.h"
 #include "pmlc/rt/symbol_registry.h"
 #include "pmlc/util/logging.h"
 
@@ -11,24 +11,24 @@ namespace pmlc::rt::level_zero {
 
 extern "C" {
 
-void *oclCreate(void *device) {
+void *levelZeroCreate(void *device) {
   return new LevelZeroInvocation(static_cast<LevelZeroDevice *>(device));
 }
 
-void oclDestroy(void *invocation) {
+void levelZeroDestroy(void *invocation) {
   delete static_cast<LevelZeroInvocation *>(invocation);
 }
 
-void *oclAlloc(void *invocation, size_t bytes) {
+void *levelZeroAlloc(void *invocation, size_t bytes) {
   return static_cast<LevelZeroInvocation *>(invocation)->allocateMemory(bytes);
 }
 
-void oclDealloc(void *invocation, void *memory) {
+void levelZeroDealloc(void *invocation, void *memory) {
   static_cast<LevelZeroInvocation *>(invocation)
       ->deallocateMemory(static_cast<LevelZeroMemory *>(memory));
 }
 
-void *oclRead(void *dst, void *src, void *invocation, uint32_t count, ...) {
+void *levelZeroRead(void *dst, void *src, void *invocation, uint32_t count, ...) {
   std::vector<LevelZeroEvent *> dependencies;
   va_list args;
   va_start(args, count);
@@ -39,7 +39,7 @@ void *oclRead(void *dst, void *src, void *invocation, uint32_t count, ...) {
       ->enqueueRead(static_cast<LevelZeroMemory *>(src), dst, dependencies);
 }
 
-void *oclWrite(void *src, void *dst, void *invocation, uint32_t count, ...) {
+void *levelZeroWrite(void *src, void *dst, void *invocation, uint32_t count, ...) {
   std::vector<LevelZeroEvent *> dependencies;
   va_list args;
   va_start(args, count);
@@ -50,23 +50,23 @@ void *oclWrite(void *src, void *dst, void *invocation, uint32_t count, ...) {
       ->enqueueWrite(static_cast<LevelZeroMemory *>(dst), src, dependencies);
 }
 
-void *oclCreateKernel(void *invocation, char *binary, uint32_t bytes,
+void *levelZeroCreateKernel(void *invocation, char *binary, uint32_t bytes,
                       const char *name) {
   return static_cast<LevelZeroInvocation *>(invocation)
       ->createKernelFromIL(binary, bytes, name);
 }
 
-void oclAddKernelDep(void *kernel, void *event) {
+void levelZeroAddKernelDep(void *kernel, void *event) {
   static_cast<LevelZeroKernel *>(kernel)->addDependency(
       static_cast<LevelZeroEvent *>(event));
 }
 
-void oclSetKernelArg(void *kernel, uint32_t idx, void *memory) {
+void levelZeroSetKernelArg(void *kernel, uint32_t idx, void *memory) {
   static_cast<LevelZeroKernel *>(kernel)->setArg(
       idx, static_cast<LevelZeroMemory *>(memory));
 }
 
-void *oclScheduleFunc(void *invocation, void *kernel, uint64_t gws0,
+void *levelZeroScheduleFunc(void *invocation, void *kernel, uint64_t gws0,
                       uint64_t gws1, uint64_t gws2, uint64_t lws0,
                       uint64_t lws1, uint64_t lws2) {
   ze_group_count_t gws(gws0, gws1, gws2);
@@ -75,7 +75,7 @@ void *oclScheduleFunc(void *invocation, void *kernel, uint64_t gws0,
       ->enqueueKernel(static_cast<LevelZeroKernel *>(kernel), gws, lws);
 }
 
-void *oclBarrier(void *invocation, uint32_t count, ...) {
+void *levelZeroBarrier(void *invocation, uint32_t count, ...) {
   std::vector<LevelZeroEvent *> dependencies;
   va_list args;
   va_start(args, count);
@@ -86,11 +86,11 @@ void *oclBarrier(void *invocation, uint32_t count, ...) {
       ->enqueueBarrier(dependencies);
 }
 
-void oclSubmit(void *invocation) {
+void levelZeroSubmit(void *invocation) {
   static_cast<LevelZeroInvocation *>(invocation)->flush();
 }
 
-void oclWait(uint32_t count, ...) {
+void levelZeroWait(uint32_t count, ...) {
   std::vector<LevelZeroEvent *> events;
   va_list args;
   va_start(args, count);
@@ -108,23 +108,23 @@ struct Registration {
     using pmlc::rt::registerSymbol;
 
     // LevelZero Runtime functions
-    registerSymbol("oclCreate", reinterpret_cast<void *>(oclCreate));
-    registerSymbol("oclDestroy", reinterpret_cast<void *>(oclDestroy));
-    registerSymbol("oclAlloc", reinterpret_cast<void *>(oclAlloc));
-    registerSymbol("oclDealloc", reinterpret_cast<void *>(oclDealloc));
-    registerSymbol("oclRead", reinterpret_cast<void *>(oclRead));
-    registerSymbol("oclWrite", reinterpret_cast<void *>(oclWrite));
-    registerSymbol("oclCreateKernel",
-                   reinterpret_cast<void *>(oclCreateKernel));
-    registerSymbol("oclSetKernelArg",
-                   reinterpret_cast<void *>(oclSetKernelArg));
-    registerSymbol("oclAddKernelDep",
-                   reinterpret_cast<void *>(oclAddKernelDep));
-    registerSymbol("_mlir_ciface_oclScheduleFunc",
-                   reinterpret_cast<void *>(oclScheduleFunc));
-    registerSymbol("oclBarrier", reinterpret_cast<void *>(oclBarrier));
-    registerSymbol("oclSubmit", reinterpret_cast<void *>(oclSubmit));
-    registerSymbol("oclWait", reinterpret_cast<void *>(oclWait));
+    registerSymbol("levelZeroCreate", reinterpret_cast<void *>(levelZeroCreate));
+    registerSymbol("levelZeroDestroy", reinterpret_cast<void *>(levelZeroDestroy));
+    registerSymbol("levelZeroAlloc", reinterpret_cast<void *>(levelZeroAlloc));
+    registerSymbol("levelZeroDealloc", reinterpret_cast<void *>(levelZeroDealloc));
+    registerSymbol("levelZeroRead", reinterpret_cast<void *>(levelZeroRead));
+    registerSymbol("levelZeroWrite", reinterpret_cast<void *>(levelZeroWrite));
+    registerSymbol("levelZeroCreateKernel",
+                   reinterpret_cast<void *>(levelZeroCreateKernel));
+    registerSymbol("levelZeroSetKernelArg",
+                   reinterpret_cast<void *>(levelZeroSetKernelArg));
+    registerSymbol("levelZeroAddKernelDep",
+                   reinterpret_cast<void *>(levelZeroAddKernelDep));
+    registerSymbol("_mlir_ciface_levelZeroScheduleFunc",
+                   reinterpret_cast<void *>(levelZeroScheduleFunc));
+    registerSymbol("levelZeroBarrier", reinterpret_cast<void *>(levelZeroBarrier));
+    registerSymbol("levelZeroSubmit", reinterpret_cast<void *>(levelZeroSubmit));
+    registerSymbol("levelZeroWait", reinterpret_cast<void *>(levelZeroWait));
   }
 };
 static Registration reg;

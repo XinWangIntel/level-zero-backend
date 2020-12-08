@@ -1,5 +1,5 @@
 // Copyright 2020 Intel Corporation
-#include "opencl_utils.h"
+#include "pmlc/rt/level_zero/level_zero_utils.h"
 
 #include <string>
 #include <vector>

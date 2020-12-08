@@ -1,22 +1,20 @@
 pml_cc_library(
-  NAME opencl
+  NAME level_zero
   SRCS
     common_wrappers.cc
-    opencl_device.cc
-    opencl_device.h
-    opencl_invocation.cc
-    opencl_invocation.h
-    opencl_runtime.cc
-    opencl_wrappers.cc
-    opencl_utils.h
-    opencl_utils.cc
+    level_zero_device.cc
+    level_zero_device.h
+    level_zero_invocation.cc
+    level_zero_invocation.h
+    level_zero_runtime.cc
+    level_zero_wrappers.cc
+    level_zero_utils.h
+    level_zero_utils.cc
   DEPS
     pmlc::compiler
     pmlc::rt
     MLIRPass
     MLIRSPIRV
     mlir_runner_utils
-    opencl_headers
-    opencl_hpp_headers
-    OpenCL
+    Level_Zero
 )

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "opencl_device.h"
+#include "pmlc/rt/level_zero/level_zero_device.h"
 
 namespace pmlc::rt::level_zero {
 class LevelZeroEvent;

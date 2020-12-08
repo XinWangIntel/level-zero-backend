@@ -9,6 +9,8 @@
 #ifndef level_zero_tests_ZE_TEST_HARNESS_EVENT_HPP
 #define level_zero_tests_ZE_TEST_HARNESS_EVENT_HPP
 
+#include <map>
+
 #include "test_harness/test_harness.hpp"
 #include <level_zero/ze_api.h>
 
@@ -79,11 +81,6 @@ void destroy_event(ze_event_handle_t event);
 void destroy_event_pool(ze_event_pool_handle_t event_pool);
 ze_kernel_timestamp_result_t
 get_event_kernel_timestamp(ze_event_handle_t event);
-
-class zeEventPoolTests : public ::testing::Test {
-protected:
-  zeEventPool ep;
-};
 
 }; // namespace level_zero_tests
 

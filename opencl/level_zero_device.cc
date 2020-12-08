@@ -1,5 +1,5 @@
 // Copyright 2020 Intel Corporation
-#include "opencl_device.h"
+#include "pmlc/rt/level_zero/level_zero_device.h"
 
 #include "pmlc/rt/jit_executable.h"
 #include "pmlc/util/logging.h"
@@ -45,7 +45,7 @@ LevelZeroQueueUser LevelZeroQueueGuard::use() {
 
 LevelZeroDevice::LevelZeroDevice(ze_device_handle_t device)
     : context(device), device(device) {
-  IVLOG(1, "Instantiating LevelZero device: " << get_device_properties(device).name;
+  IVLOG(1, "Instantiating LevelZero device: " << lzt::get_device_properties(device).name;
 }
 
 std::unique_ptr<Executable>

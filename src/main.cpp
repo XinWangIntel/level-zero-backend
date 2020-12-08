@@ -14,10 +14,10 @@ struct copy_data {
 
 int main(int argc, char **argv) {
   ze_result_t result = zeInit(0);
-  if (result) {
-    throw std::runtime_error("zeInit failed: " +
-                             result);
-  }
+  //if (result) {
+  //  throw std::runtime_error("zeInit failed: " +
+ //                            result);
+ // }
 
   ze_memory_type_t memory_type = ZE_MEMORY_TYPE_HOST;
   //ze_memory_type_t memory_type = ZE_MEMORY_TYPE_SHARED;

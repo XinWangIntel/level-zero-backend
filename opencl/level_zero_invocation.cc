@@ -1,5 +1,5 @@
 // Copyright 2020 Intel Corporation
-#include "opencl_invocation.h"
+#include "pmlc/rt/level_zero/level_zero_invocation.h"
 
 #include <algorithm>
 #include <chrono>
