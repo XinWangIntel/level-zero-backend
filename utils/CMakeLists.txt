@@ -11,6 +11,8 @@ file(GLOB HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/test_harness/.hpp
 )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 add_library(lz_wrapper ${HEADERS} ${SOURCES})
 
 target_link_libraries(lz_wrapper
