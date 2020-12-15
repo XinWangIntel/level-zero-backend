@@ -22,7 +22,6 @@
     }\
 }
 
-#include <assert.h>
 #define EXPECT_EQ(x, y) MYASSERT((x) == (y))
 #define EXPECT_NE(x, y) MYASSERT((x) != (y))
 #define EXPECT_GT(x, y) MYASSERT((x) > (y))
