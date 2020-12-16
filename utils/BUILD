@@ -4,7 +4,7 @@ cc_library(
     name = "lz_wrapper",
     srcs = glob([
             "src/*cpp",
-            "src/hardess/*cpp",
+            "src/harness/*cpp",
     ]),
     includes = ["include",],
     hdrs = glob([
@@ -16,11 +16,12 @@ cc_library(
       "-I/usr/local/include",
     ],
     linkopts = [
-      "-lze_loader",
+      #"-lze_loader",
       "-L/usr/local/lib",
     ],
-    #deps = [
-    #  "@Level_Zero//:ze_loader",
-    #],
+    deps = [
+      "@Level_Zero//:ze_loader",
+    ],
     visibility = ["//visibility:public"],
+    linkstatic = 1,
 )

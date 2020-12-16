@@ -165,7 +165,7 @@ std::vector<ze_command_queue_group_properties_t>
 get_command_queue_group_properties(ze_device_handle_t device, uint32_t count) {
   std::vector<ze_command_queue_group_properties_t> properties(count);
 
-  for (auto properties_item : properties) {
+  for (auto& properties_item : properties) {
     properties_item.stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_GROUP_PROPERTIES;
   }
   EXPECT_EQ(ZE_RESULT_SUCCESS, zeDeviceGetCommandQueueGroupProperties(

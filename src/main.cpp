@@ -6,6 +6,8 @@
 #include "utils/logging.hpp"
 #include "utils/utils.hpp"
 
+#include <iostream>
+
 namespace lzt = level_zero_tests;
 
 const size_t size = 9;
@@ -15,11 +17,13 @@ struct copy_data {
 };
 
 int main(int argc, char **argv) {
+  std::cout << "xin:" << __LINE__ << std::endl;
   ze_result_t result = zeInit(0);
-  // if (result) {
-  //  throw std::runtime_error("zeInit failed: " +
-  //                            result);
-  // }
+  std::cout << "xin:" << __LINE__ << std::endl;
+  if (result) {
+    throw std::runtime_error("zeInit failed: " +
+                              result);
+  }
 
    ze_memory_type_t memory_type = ZE_MEMORY_TYPE_HOST;
   //ze_memory_type_t memory_type = ZE_MEMORY_TYPE_SHARED;
