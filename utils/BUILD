@@ -13,12 +13,13 @@ cc_library(
     ]),
     copts = [
       "-std=c++11",
-      "-I/usr/local/include",
+      "-g",
+    #  "-I/usr/local/include",
     ],
-    linkopts = [
+    #linkopts = [
       #"-lze_loader",
-      "-L/usr/local/lib",
-    ],
+    #  "-L/usr/local/lib",
+    #],
     deps = [
       "@Level_Zero//:ze_loader",
     ],

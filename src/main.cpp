@@ -18,11 +18,15 @@ struct copy_data {
 
 int main(int argc, char **argv) {
   std::cout << "xin:" << __LINE__ << std::endl;
-  ze_result_t result = zeInit(0);
-  std::cout << "xin:" << __LINE__ << std::endl;
-  if (result) {
-    throw std::runtime_error("zeInit failed: " +
-                              result);
+  ze_result_t result = ZE_RESULT_NOT_READY;
+  try {
+    std::cout << "xin:" << __LINE__ << std::endl;
+    result = zeInit(0);
+    std::cout << "xin:" << __LINE__ << std::endl;
+  } catch (std::exception &e) {
+    std::ostringstream ostr1;
+    ostr1 << "xin zeInit failed : " << result << " : " << e.what() <<std::endl;
+    throw std::runtime_error(ostr1.str());
   }
 
    ze_memory_type_t memory_type = ZE_MEMORY_TYPE_HOST;

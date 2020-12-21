@@ -16,16 +16,20 @@ cc_binary(
     #]),
     copts = [
       "-std=c++11",
-      "-I/usr/local/include/level_zero",
+    #  "-I/usr/local/include/level_zero",
     ],
     linkopts = [
       "-ldl",
+      "-g",
       #"-lze_loader",
       #"-llz_wrapper",
     ],
     deps = [
             "//utils:lz_wrapper",
             #"@Level_Zero//:ze_loader",
+    ],
+    data = [
+            "spirv_0",
     ],
     linkstatic = 1,
 )
