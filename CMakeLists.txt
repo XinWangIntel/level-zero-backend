@@ -5,7 +5,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 add_compile_options(-std=c++11)
 
-find_package(LevelZero)
+#find_package(LevelZero)
+
+include(FetchContent)
+include(LevelZero)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utils/include)
 
@@ -13,7 +16,7 @@ add_subdirectory(utils)
 
 add_executable(test src/main.cpp)
 
-target_link_libraries(test lz_wrapper LevelZero::LevelZero)
+target_link_libraries(test lz_wrapper)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
 set(destination ${CMAKE_INSTALL_PREFIX})

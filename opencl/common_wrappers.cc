@@ -7,11 +7,11 @@
 namespace pmlc::rt::level_zero {
 namespace {
 template <typename T>
-void *castMemrefToPtr(::UnrankedMemRefType<T> *unrankedMemRef) {
+void* castMemrefToPtr(::UnrankedMemRefType<T>* unrankedMemRef) {
   DynamicMemRefType<T> memRef(*unrankedMemRef);
   return memRef.data;
 }
-} // namespace
+}  // namespace
 // clang-format off
 #define ALL_CAST_MEMREF_TO_PTR(macro)                                          \
     macro(castMemrefToPtrI8, int8_t)                                           \
@@ -25,22 +25,21 @@ void *castMemrefToPtr(::UnrankedMemRefType<T> *unrankedMemRef) {
 // clang-format on
 
 extern "C" {
-#define DECLARE_CAST_MEMREF_TO_PTR(name, type)                                 \
-  char *name(::UnrankedMemRefType<type> *unrankedMemRef) {                     \
-    return static_cast<char *>(castMemrefToPtr<type>(unrankedMemRef));         \
+#define DECLARE_CAST_MEMREF_TO_PTR(name, type)                        \
+  char* name(::UnrankedMemRefType<type>* unrankedMemRef) {            \
+    return static_cast<char*>(castMemrefToPtr<type>(unrankedMemRef)); \
   }
 
 ALL_CAST_MEMREF_TO_PTR(DECLARE_CAST_MEMREF_TO_PTR)
 
 #undef DECLARE_CAST_MEMREF_TO_PTR
-} // extern "C"
+}  // extern "C"
 
 namespace {
 struct Registration {
   Registration() {
     using pmlc::rt::registerSymbol;
-#define REGISTER_CAST_MEMREF_TO_PTR(name, type)                                \
-  registerSymbol("_mlir_ciface_" #name, reinterpret_cast<void *>(name));
+#define REGISTER_CAST_MEMREF_TO_PTR(name, type) registerSymbol("_mlir_ciface_" #name, reinterpret_cast<void*>(name));
 
     ALL_CAST_MEMREF_TO_PTR(REGISTER_CAST_MEMREF_TO_PTR)
 
@@ -48,5 +47,5 @@ struct Registration {
   }
 };
 static Registration reg;
-} // namespace
-} // namespace pmlc::rt::level_zero
+}  // namespace
+}  // namespace pmlc::rt::level_zero
