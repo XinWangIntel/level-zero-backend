@@ -8,8 +8,15 @@ cc_library(
         "source/lib/*cpp",
         #"source/loader/*cpp",
     ]) + select({
-        "@bazel_tools//src/conditions:windows": glob(["source/loader/windows/*cpp"]),
-        "//conditions:default": glob(["source/loader/linux/*cpp"]),
+        "@bazel_tools//src/conditions:windows": glob([
+            "source/loader/*cpp",
+            "source/loader/windows/*cpp",
+        ]),
+        "@bazel_tools//src/conditions:darwin": [],
+        "//conditions:default": glob([
+            "source/loader/*cpp",
+            "source/loader/linux/*cpp",
+        ]),
     }),
     hdrs = [
         "source/lib/ze_lib.h",
@@ -28,7 +35,11 @@ cc_library(
     defines = [
         'L0_LOADER_VERSION=\\"1\\"',
         'L0_VALIDATION_LAYER_SUPPORTED_VERSION=\\"1\\"',
-    ],
+    ] + select({
+        "@bazel_tools//src/conditions:windows": [""],
+        "@bazel_tools//src/conditions:darwin": [""],
+        "//conditions:default": [],
+    }),
     includes = [
         "include",
         "source/inc",

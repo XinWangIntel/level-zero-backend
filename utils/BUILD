@@ -21,7 +21,8 @@ cc_library(
     #  "-L/usr/local/lib",
     #],
     deps = [
-      "@Level_Zero//:ze_loader",
+      #"@Level_Zero//:ze_loader",
+      "@level_zero//:ze_loader",
     ],
     visibility = ["//visibility:public"],
     linkstatic = 1,

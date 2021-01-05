@@ -1,9 +1,9 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-local_repository(
-    name = "Level_Zero",
-    path = "../level-zero",
-)
+#local_repository(
+#    name = "Level_Zero",
+#    path = "../level-zero",
+#)
 
 # Todo,  add level_zero.BUILD
 http_archive(
