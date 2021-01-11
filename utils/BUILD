@@ -4,12 +4,10 @@ cc_library(
     name = "lz_wrapper",
     srcs = glob([
             "src/*cpp",
-            "src/harness/*cpp",
     ]),
     includes = ["include",],
     hdrs = glob([
-            "include/utils/*hpp",
-            "include/test_harness/*hpp",
+            "include/*hpp",
     ]),
     copts = [
       "-std=c++11",

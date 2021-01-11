@@ -21,3 +21,9 @@ make install
 
 ./test
 ```
+
+### Bazel
+
+```
+bazel run //:test
+```

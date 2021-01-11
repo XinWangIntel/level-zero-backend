@@ -1,11 +1,7 @@
 #include <array>
 #include <iostream>
 
-#include "test_harness/test_harness.hpp"
-#include "utils/logging.hpp"
-#include "utils/utils.hpp"
-
-namespace lzt = level_zero_tests;
+#include "level_zero_utils.hpp"
 
 const size_t size = 9;
 
@@ -17,81 +13,101 @@ int main(int argc, char** argv) {
   ze_result_t result = ZE_RESULT_NOT_READY;
   try {
     result = zeInit(0);
+    if (result != ZE_RESULT_SUCCESS) {
+      std::cout << "Function zeInit failed with result: " << lzu::to_string(result) << std::endl;
+      return -1;
+    }
   } catch (std::exception& e) {
     std::ostringstream ostr1;
-    ostr1 << "zeInit failed : " << result << " : " << e.what() << std::endl;
+    std::cout << "Function zeInit crashed with result: " << lzu::to_string(result) << " info: " << e.what()
+              << std::endl;
     throw std::runtime_error(ostr1.str());
   }
 
   ze_memory_type_t memory_type = ZE_MEMORY_TYPE_HOST;
   // ze_memory_type_t memory_type = ZE_MEMORY_TYPE_SHARED;
+  // ze_memory_type_t memory_type = ZE_MEMORY_TYPE_DEVICE;
   int offset = 0;
 
-  std::vector<ze_device_handle_t> supportedDevices;
-  for (auto driver : lzt::get_all_driver_handles()) {
-    for (auto device : lzt::get_devices(driver)) {
-      supportedDevices.push_back(device);
-    }
+  std::vector<std::pair<ze_driver_handle_t, ze_device_handle_t>> supportedDevices = lzu::getSupportedDevices();
+  if (supportedDevices.empty()) {
+    std::cout << "No supported level zero devices available" << std::endl;
+    return -2;
   }
-  std::cout << "SupportedDevice.size:" << supportedDevices.size() << std::endl;
-  ze_context_handle_t context1 = lzt::get_default_context();
-  ze_device_handle_t device1 = supportedDevices[0];
-  ze_context_handle_t context = context1;
-  ze_device_handle_t device = device1;
-  ze_command_queue_handle_t command_queue =
-      lzt::create_command_queue(context, device, 0, ZE_COMMAND_QUEUE_MODE_DEFAULT, ZE_COMMAND_QUEUE_PRIORITY_NORMAL, 0);
-  ze_command_list_handle_t command_list = lzt::create_command_list(context, device, 0, 0);
-  std::vector<uint8_t> binary_file = lzt::load_binary_file("spirv_0");
-  ze_module_handle_t module = lzt::create_module(context, device, binary_file.data(), binary_file.size(),
+
+  std::cout << "Available level zero devices count: " << supportedDevices.size() << std::endl;
+  for (auto& target : supportedDevices) {
+    std::cout << "Device: " << lzu::get_device_properties(target.second).name << std::endl;
+  }
+
+  ze_context_handle_t context = lzu::get_context(supportedDevices[0].first);
+  ze_device_handle_t device = supportedDevices[0].second;
+  ze_command_queue_handle_t command_queue = lzu::create_command_queue(
+      context, device, /*flags*/ 0, ZE_COMMAND_QUEUE_MODE_DEFAULT, ZE_COMMAND_QUEUE_PRIORITY_NORMAL,
+      /*ordinal*/ 0, /*index*/ 0);
+  ze_command_list_handle_t command_list = lzu::create_command_list(context, device, /*flags*/ 0, /*ordinal*/ 0);
+  std::vector<uint8_t> binary_file = lzu::load_binary_file("spirv_0");
+  ze_module_handle_t module = lzu::create_module(context, device, binary_file.data(), binary_file.size(),
                                                  ZE_MODULE_FORMAT_IL_SPIRV, "", nullptr);
 
-  // auto module = lzt::create_module(device, "spirv_0");
-  ze_kernel_handle_t kernel = lzt::create_function(module, "main_kernel");
+  // auto module = lzu::create_module(device, "spirv_0");
+  ze_kernel_handle_t kernel = lzu::create_function(module, /*flag*/ 0, "main_kernel");
 
   {
     {
       int64_t *input_data, *input_data1, *output_data;
       if (memory_type == ZE_MEMORY_TYPE_HOST) {
-        input_data = static_cast<int64_t*>(lzt::allocate_host_memory(size * sizeof(int64_t)));
-        input_data1 = static_cast<int64_t*>(lzt::allocate_host_memory(size * sizeof(int64_t)));
-        output_data = static_cast<int64_t*>(lzt::allocate_host_memory(size * sizeof(int64_t)));
+        // Can change host ptr data like
+        // input_data[0] = 255;
+        input_data = static_cast<int64_t*>(lzu::allocate_host_memory(size * sizeof(int64_t), 1, context));
+        input_data1 = static_cast<int64_t*>(lzu::allocate_host_memory(size * sizeof(int64_t), 1, context));
+        output_data = static_cast<int64_t*>(lzu::allocate_host_memory(size * sizeof(int64_t), 1, context));
+      } else if (memory_type = ZE_MEMORY_TYPE_DEVICE) {
+        input_data =
+            static_cast<int64_t*>(lzu::allocate_device_memory(size * sizeof(int64_t), 1, 0, 0, device, context));
+        input_data1 =
+            static_cast<int64_t*>(lzu::allocate_device_memory(size * sizeof(int64_t), 1, 0, 0, device, context));
+        output_data =
+            static_cast<int64_t*>(lzu::allocate_device_memory(size * sizeof(int64_t), 1, 0, 0, device, context));
       } else {
-        input_data = static_cast<int64_t*>(lzt::allocate_shared_memory(size * sizeof(int64_t)));
-        input_data1 = static_cast<int64_t*>(lzt::allocate_shared_memory(size * sizeof(int64_t)));
-        output_data = static_cast<int64_t*>(lzt::allocate_shared_memory(size * sizeof(int64_t)));
+        input_data =
+            static_cast<int64_t*>(lzu::allocate_shared_memory(size * sizeof(int64_t), 1, 0, 0, device, context));
+        input_data1 =
+            static_cast<int64_t*>(lzu::allocate_shared_memory(size * sizeof(int64_t), 1, 0, 0, device, context));
+        output_data =
+            static_cast<int64_t*>(lzu::allocate_shared_memory(size * sizeof(int64_t), 1, 0, 0, device, context));
       }
 
-      // for(int i = 0; i < size; i++) {
-      //    input_data[i] = i;
-      //    input_data1[i] = i;
-      // }
-      lzt::zeEventPool eventPool;
+      lzu::zeEventPool eventPool;
       eventPool.InitEventPool(context, 32);
       std::vector<uint64_t> value0 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
       ze_event_handle_t e0;
-      eventPool.create_event(e0);
-      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(input_data), reinterpret_cast<void*>(value0.data()),
+      eventPool.create_event(&e0);
+      lzu::append_memory_copy(command_list, reinterpret_cast<void*>(input_data), reinterpret_cast<void*>(value0.data()),
                               9 * 8, e0, 0, nullptr);
 
       std::vector<uint64_t> value1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
       ze_event_handle_t e1;
-      eventPool.create_event(e1);
-      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(input_data1),
+      eventPool.create_event(&e1);
+      lzu::append_memory_copy(command_list, reinterpret_cast<void*>(input_data1),
                               reinterpret_cast<void*>(value1.data()), 9 * 8, e1, 0, nullptr);
 
       std::vector<uint64_t> out = {0, 0, 0, 0, 0, 0, 0, 0, 0};
       ze_event_handle_t e2;
-      eventPool.create_event(e2);
-      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(output_data), reinterpret_cast<void*>(out.data()),
+      eventPool.create_event(&e2);
+      lzu::append_memory_copy(command_list, reinterpret_cast<void*>(output_data), reinterpret_cast<void*>(out.data()),
                               9 * 8, e2, 0, nullptr);
 
       ze_kernel_handle_t kernel1 = kernel;
-      lzt::set_argument_value(kernel1, 0, sizeof(input_data), &input_data);
-      lzt::set_argument_value(kernel1, 1, sizeof(input_data1), &input_data1);
-      lzt::set_argument_value(kernel1, 2, sizeof(output_data), &output_data);
+      lzu::set_argument_value(kernel1, 0, sizeof(input_data), &input_data);
+      lzu::set_argument_value(kernel1, 1, sizeof(input_data1), &input_data1);
+      lzu::set_argument_value(kernel1, 2, sizeof(output_data), &output_data);
 
-      lzt::set_group_size(kernel, 1, 9, 9);
+      // Group size and count will influence some old neo drivers on subgroup broadcast part.
+      // Each group size
+      lzu::set_group_size(kernel, 1, 9, 9);
 
+      // Total group count
       ze_group_count_t group_count;
       group_count.groupCountX = 1;
       group_count.groupCountY = 9;
@@ -102,42 +118,46 @@ int main(int argc, char** argv) {
       events.push_back(e1);
       events.push_back(e2);
       ze_event_handle_t e3;
-      eventPool.create_event(e3);
-      lzt::append_launch_function(command_list, kernel, &group_count, e3, events.size(), events.data());
+      eventPool.create_event(&e3);
+      lzu::append_launch_function(command_list, kernel, &group_count, e3, events.size(), events.data());
 
-      // lzt::close_command_list(command_list);
-      // lzt::execute_command_lists(command_queue, 1, &command_list, nullptr);
-      // lzt::synchronize(command_queue, UINT64_MAX);
+      // For host kind memory, can submmit here and then copy by cpu.
+      // For shared and device memory, can submit later
+      // Event takes more time than cpu computation on some machine
+      // lzu::close_command_list(command_list);
+      // lzu::execute_command_lists(command_queue, 1, &command_list, nullptr);
+      // lzu::synchronize(command_queue, UINT64_MAX);
 
       ze_event_handle_t e0_0;
-      eventPool.create_event(e0_0);
+      eventPool.create_event(&e0_0);
       std::vector<ze_event_handle_t> events0;
       events0.push_back(e3);
       events0.push_back(e0);
-      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(value0.data()), reinterpret_cast<void*>(input_data),
+      lzu::append_memory_copy(command_list, reinterpret_cast<void*>(value0.data()), reinterpret_cast<void*>(input_data),
                               9 * 8, e0_0, events0.size(), events0.data());
 
       ze_event_handle_t e1_1;
-      eventPool.create_event(e1_1);
+      eventPool.create_event(&e1_1);
       std::vector<ze_event_handle_t> events1;
       events1.push_back(e3);
       events1.push_back(e1);
-      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(value1.data()),
+      lzu::append_memory_copy(command_list, reinterpret_cast<void*>(value1.data()),
                               reinterpret_cast<void*>(input_data1), 9 * 8, e1_1, events1.size(), events1.data());
 
       // std::vector<uint64_t> out = {0, 0, 0, 0, 0, 0};
       ze_event_handle_t e2_2;
-      eventPool.create_event(e2_2);
+      eventPool.create_event(&e2_2);
       std::vector<ze_event_handle_t> events2;
       events2.push_back(e3);
       events2.push_back(e2);
-      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(out.data()), reinterpret_cast<void*>(output_data),
+      lzu::append_memory_copy(command_list, reinterpret_cast<void*>(out.data()), reinterpret_cast<void*>(output_data),
                               9 * 8, e2_2, events2.size(), events2.data());
 
-      lzt::close_command_list(command_list);
-      lzt::execute_command_lists(command_queue, 1, &command_list, nullptr);
-      lzt::synchronize(command_queue, UINT64_MAX);
+      lzu::close_command_list(command_list);
+      lzu::execute_command_lists(command_queue, 1, &command_list, nullptr);
+      lzu::synchronize(command_queue, UINT64_MAX);
 
+      // Check the result
       // if (0 != memcmp(input_data, output_data + offset, (size - offset) *
       // sizeof(int)))
       //    return -1;
@@ -152,18 +172,22 @@ int main(int argc, char** argv) {
       zeEventHostSynchronize(e1_1, UINT64_MAX);
       zeEventHostSynchronize(e2_2, UINT64_MAX);
 
+      std::cout << "Output data: " << std::endl;
       for (int i = 0; i < size; i++) {
         std::cout << output_data[i] << " ";
       }
       std::cout << std::endl;
+      std::cout << "out data: " << std::endl;
       for (int i = 0; i < size; i++) {
         std::cout << out[i] << " ";
       }
+      std::cout << std::endl;
 
-      lzt::synchronize(command_queue, UINT64_MAX);
+      lzu::synchronize(command_queue, UINT64_MAX);
       // cleanup
-      lzt::free_memory(input_data);
-      lzt::free_memory(output_data);
+      lzu::free_memory(context, reinterpret_cast<void*>(input_data));
+      lzu::free_memory(context, reinterpret_cast<void*>(input_data1));
+      lzu::free_memory(context, reinterpret_cast<void*>(output_data));
 
       eventPool.destroy_event(e0);
       eventPool.destroy_event(e1);
@@ -173,12 +197,13 @@ int main(int argc, char** argv) {
       eventPool.destroy_event(e1_1);
       eventPool.destroy_event(e2_2);
 
-      lzt::destroy_function(kernel);
-      lzt::destroy_module(module);
-      lzt::destroy_command_list(command_list);
-      lzt::destroy_command_queue(command_queue);
+      lzu::destroy_function(kernel);
+      lzu::destroy_module(module);
+      lzu::destroy_command_list(command_list);
+      lzu::destroy_command_queue(command_queue);
     }
     std::cout << std::endl;
   }
+  std::cout << "Finish." << std::endl;
   return 0;
 }

@@ -1,15 +1,21 @@
-cmake_minimum_required(VERSION 2.8)
-project(lz0_test)
+cmake_minimum_required(VERSION 3.14)
+project(lz_test)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 
-find_package(LevelZero)
+option(ENABLE_LOCAL_LEVELZERO "Enabel local installed LevelZero" ON)
 
-# In this case, change <level_zero/ze_api.h> to <ze_api.h>
-#include(FetchContent)
-#include(LevelZero)
+if(ENABLE_LOCAL_LEVELZERO)
+    find_package(LevelZero)
+    add_compile_definitions(USE_LOCAL_LEVEL_ZERO)
+else()
+    # In this case, change <level_zero/ze_api.h> to <ze_api.h>
+    include(FetchContent)
+    include(LevelZero)
+    include_directories(SYSTEM ${levelzero_SOURCE_DIR}/include)
+endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utils/include)
 
@@ -23,6 +29,6 @@ set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
 set(destination ${CMAKE_INSTALL_PREFIX})
 
 install(
-    FILES "${CMAKE_CURRENT_SOURCE_DIR}/kernels/copy_module.spv"
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/kernels/spirv_0"
     DESTINATION ${destination}
 )
