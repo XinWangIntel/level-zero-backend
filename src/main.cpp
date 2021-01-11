@@ -1,12 +1,9 @@
-#include <level_zero/ze_api.h>
-
 #include <array>
+#include <iostream>
 
 #include "test_harness/test_harness.hpp"
 #include "utils/logging.hpp"
 #include "utils/utils.hpp"
-
-#include <iostream>
 
 namespace lzt = level_zero_tests;
 
@@ -17,15 +14,12 @@ struct copy_data {
 };
 
 int main(int argc, char** argv) {
-  std::cout << "xin:" << __LINE__ << std::endl;
   ze_result_t result = ZE_RESULT_NOT_READY;
   try {
-    std::cout << "xin:" << __LINE__ << std::endl;
     result = zeInit(0);
-    std::cout << "xin:" << __LINE__ << std::endl;
   } catch (std::exception& e) {
     std::ostringstream ostr1;
-    ostr1 << "xin zeInit failed : " << result << " : " << e.what() << std::endl;
+    ostr1 << "zeInit failed : " << result << " : " << e.what() << std::endl;
     throw std::runtime_error(ostr1.str());
   }
 
@@ -39,7 +33,7 @@ int main(int argc, char** argv) {
       supportedDevices.push_back(device);
     }
   }
-  std::cout << "xin supportedDevice.size:" << supportedDevices.size() << std::endl;
+  std::cout << "SupportedDevice.size:" << supportedDevices.size() << std::endl;
   ze_context_handle_t context1 = lzt::get_default_context();
   ze_device_handle_t device1 = supportedDevices[0];
   ze_context_handle_t context = context1;
@@ -66,39 +60,36 @@ int main(int argc, char** argv) {
         input_data1 = static_cast<int64_t*>(lzt::allocate_shared_memory(size * sizeof(int64_t)));
         output_data = static_cast<int64_t*>(lzt::allocate_shared_memory(size * sizeof(int64_t)));
       }
-      std::cout << "xin:" << __LINE__ << std::endl;
 
       // for(int i = 0; i < size; i++) {
       //    input_data[i] = i;
       //    input_data1[i] = i;
       // }
-      std::cout << "xin:" << __LINE__ << std::endl;
       lzt::zeEventPool eventPool;
       eventPool.InitEventPool(context, 32);
       std::vector<uint64_t> value0 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
       ze_event_handle_t e0;
       eventPool.create_event(e0);
-      lzt::append_memory_copy(command_list, (void*)input_data, (void*)value0.data(), 9 * 8, e0, 0, nullptr);
+      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(input_data), reinterpret_cast<void*>(value0.data()),
+                              9 * 8, e0, 0, nullptr);
 
-      std::cout << "xin:" << __LINE__ << std::endl;
       std::vector<uint64_t> value1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
       ze_event_handle_t e1;
       eventPool.create_event(e1);
-      lzt::append_memory_copy(command_list, (void*)input_data1, (void*)value1.data(), 9 * 8, e1, 0, nullptr);
+      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(input_data1),
+                              reinterpret_cast<void*>(value1.data()), 9 * 8, e1, 0, nullptr);
 
       std::vector<uint64_t> out = {0, 0, 0, 0, 0, 0, 0, 0, 0};
       ze_event_handle_t e2;
       eventPool.create_event(e2);
-      lzt::append_memory_copy(command_list, (void*)output_data, (void*)out.data(), 9 * 8, e2, 0, nullptr);
+      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(output_data), reinterpret_cast<void*>(out.data()),
+                              9 * 8, e2, 0, nullptr);
 
-      std::cout << "xin:" << __LINE__ << std::endl;
-      std::cout << "xin: input_data size:" << sizeof(input_data) << std::endl;
       ze_kernel_handle_t kernel1 = kernel;
       lzt::set_argument_value(kernel1, 0, sizeof(input_data), &input_data);
       lzt::set_argument_value(kernel1, 1, sizeof(input_data1), &input_data1);
       lzt::set_argument_value(kernel1, 2, sizeof(output_data), &output_data);
 
-      std::cout << "xin:" << __LINE__ << std::endl;
       lzt::set_group_size(kernel, 1, 9, 9);
 
       ze_group_count_t group_count;
@@ -114,7 +105,6 @@ int main(int argc, char** argv) {
       eventPool.create_event(e3);
       lzt::append_launch_function(command_list, kernel, &group_count, e3, events.size(), events.data());
 
-      std::cout << "xin:" << __LINE__ << std::endl;
       // lzt::close_command_list(command_list);
       // lzt::execute_command_lists(command_queue, 1, &command_list, nullptr);
       // lzt::synchronize(command_queue, UINT64_MAX);
@@ -124,16 +114,16 @@ int main(int argc, char** argv) {
       std::vector<ze_event_handle_t> events0;
       events0.push_back(e3);
       events0.push_back(e0);
-      lzt::append_memory_copy(command_list, (void*)value0.data(), (void*)input_data, 9 * 8, e0_0, events0.size(),
-                              events0.data());
+      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(value0.data()), reinterpret_cast<void*>(input_data),
+                              9 * 8, e0_0, events0.size(), events0.data());
 
       ze_event_handle_t e1_1;
       eventPool.create_event(e1_1);
       std::vector<ze_event_handle_t> events1;
       events1.push_back(e3);
       events1.push_back(e1);
-      lzt::append_memory_copy(command_list, (void*)value1.data(), (void*)input_data1, 9 * 8, e1_1, events1.size(),
-                              events1.data());
+      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(value1.data()),
+                              reinterpret_cast<void*>(input_data1), 9 * 8, e1_1, events1.size(), events1.data());
 
       // std::vector<uint64_t> out = {0, 0, 0, 0, 0, 0};
       ze_event_handle_t e2_2;
@@ -141,15 +131,13 @@ int main(int argc, char** argv) {
       std::vector<ze_event_handle_t> events2;
       events2.push_back(e3);
       events2.push_back(e2);
-      lzt::append_memory_copy(command_list, (void*)out.data(), (void*)output_data, 9 * 8, e2_2, events2.size(),
-                              events2.data());
+      lzt::append_memory_copy(command_list, reinterpret_cast<void*>(out.data()), reinterpret_cast<void*>(output_data),
+                              9 * 8, e2_2, events2.size(), events2.data());
 
-      std::cout << "xin:" << __LINE__ << std::endl;
       lzt::close_command_list(command_list);
       lzt::execute_command_lists(command_queue, 1, &command_list, nullptr);
       lzt::synchronize(command_queue, UINT64_MAX);
 
-      std::cout << "xin:" << __LINE__ << std::endl;
       // if (0 != memcmp(input_data, output_data + offset, (size - offset) *
       // sizeof(int)))
       //    return -1;

@@ -17,5 +17,6 @@ add_library(lz_wrapper ${HEADERS} ${SOURCES})
 
 target_link_libraries(lz_wrapper
     PUBLIC
-    LevelZero::LevelZero
+    #LevelZero::LevelZero
+    ze_loader
 )

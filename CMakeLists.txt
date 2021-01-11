@@ -5,10 +5,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 add_compile_options(-std=c++11)
 
-#find_package(LevelZero)
+find_package(LevelZero)
 
-include(FetchContent)
-include(LevelZero)
+# In this case, change <level_zero/ze_api.h> to <ze_api.h>
+#include(FetchContent)
+#include(LevelZero)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utils/include)
 
