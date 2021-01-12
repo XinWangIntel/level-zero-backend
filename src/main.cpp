@@ -1,4 +1,5 @@
 #include <array>
+#include <chrono>
 #include <iostream>
 
 #include "level_zero_utils.hpp"
@@ -11,6 +12,7 @@ struct copy_data {
 
 int main(int argc, char** argv) {
   ze_result_t result = ZE_RESULT_NOT_READY;
+  std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
   try {
     result = zeInit(0);
     if (result != ZE_RESULT_SUCCESS) {
@@ -78,23 +80,27 @@ int main(int argc, char** argv) {
             static_cast<int64_t*>(lzu::allocate_shared_memory(size * sizeof(int64_t), 1, 0, 0, device, context));
       }
 
+      std::vector<ze_event_handle_t> allEvents;
       lzu::zeEventPool eventPool;
       eventPool.InitEventPool(context, 32);
       std::vector<uint64_t> value0 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
       ze_event_handle_t e0;
       eventPool.create_event(&e0);
+      allEvents.push_back(e0);
       lzu::append_memory_copy(command_list, reinterpret_cast<void*>(input_data), reinterpret_cast<void*>(value0.data()),
                               9 * 8, e0, 0, nullptr);
 
       std::vector<uint64_t> value1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
       ze_event_handle_t e1;
       eventPool.create_event(&e1);
+      allEvents.push_back(e1);
       lzu::append_memory_copy(command_list, reinterpret_cast<void*>(input_data1),
                               reinterpret_cast<void*>(value1.data()), 9 * 8, e1, 0, nullptr);
 
       std::vector<uint64_t> out = {0, 0, 0, 0, 0, 0, 0, 0, 0};
       ze_event_handle_t e2;
       eventPool.create_event(&e2);
+      allEvents.push_back(e2);
       lzu::append_memory_copy(command_list, reinterpret_cast<void*>(output_data), reinterpret_cast<void*>(out.data()),
                               9 * 8, e2, 0, nullptr);
 
@@ -119,6 +125,7 @@ int main(int argc, char** argv) {
       events.push_back(e2);
       ze_event_handle_t e3;
       eventPool.create_event(&e3);
+      allEvents.push_back(e3);
       lzu::append_launch_function(command_list, kernel, &group_count, e3, events.size(), events.data());
 
       // For host kind memory, can submmit here and then copy by cpu.
@@ -130,6 +137,7 @@ int main(int argc, char** argv) {
 
       ze_event_handle_t e0_0;
       eventPool.create_event(&e0_0);
+      allEvents.push_back(e0_0);
       std::vector<ze_event_handle_t> events0;
       events0.push_back(e3);
       events0.push_back(e0);
@@ -138,6 +146,7 @@ int main(int argc, char** argv) {
 
       ze_event_handle_t e1_1;
       eventPool.create_event(&e1_1);
+      allEvents.push_back(e1_1);
       std::vector<ze_event_handle_t> events1;
       events1.push_back(e3);
       events1.push_back(e1);
@@ -147,6 +156,7 @@ int main(int argc, char** argv) {
       // std::vector<uint64_t> out = {0, 0, 0, 0, 0, 0};
       ze_event_handle_t e2_2;
       eventPool.create_event(&e2_2);
+      allEvents.push_back(e2_2);
       std::vector<ze_event_handle_t> events2;
       events2.push_back(e3);
       events2.push_back(e2);
@@ -172,6 +182,10 @@ int main(int argc, char** argv) {
       zeEventHostSynchronize(e1_1, UINT64_MAX);
       zeEventHostSynchronize(e2_2, UINT64_MAX);
 
+      std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+      std::chrono::duration<double> diff = end - start;
+      std::cout << "All executation time: " << diff.count() << "ms" << std::endl;
+
       std::cout << "Output data: " << std::endl;
       for (int i = 0; i < size; i++) {
         std::cout << output_data[i] << " ";
@@ -183,7 +197,49 @@ int main(int argc, char** argv) {
       }
       std::cout << std::endl;
 
+      // final confirm
       lzu::synchronize(command_queue, UINT64_MAX);
+
+      // profiling
+      using std::chrono::nanoseconds;
+      using fp_milliseconds = std::chrono::duration<double, std::chrono::milliseconds::period>;
+      nanoseconds totalExecuteTime{0};
+      nanoseconds kernelExecuteTime{0};
+      nanoseconds memoryExecuteTime{0};
+      // unsigned kernelsCnt = 0;
+      // unsigned memoryCnt = 0;
+
+      auto getEventKernelTimestamp = [](ze_event_handle_t event) -> ze_kernel_timestamp_result_t {
+        ze_kernel_timestamp_result_t value = {};
+        zeEventQueryKernelTimestamp(event, &value);
+        return value;
+      };
+
+      auto deviceProperties = lzu::get_device_properties(device);
+      const uint64_t timestampFreq = deviceProperties.timerResolution;
+      const uint64_t timestampMaxValue = ~(-1 << deviceProperties.kernelTimestampValidBits);
+
+      for (auto event : allEvents) {
+        if (event == nullptr) continue;
+        ze_kernel_timestamp_result_t timestamp = getEventKernelTimestamp(event);
+        uint64_t start = timestamp.context.kernelStart;
+        uint64_t end = timestamp.context.kernelEnd;
+        auto eventExecuteTime =
+            (end >= start) ? (end - start) * timestampFreq : ((timestampMaxValue - start + end + 1) * timestampFreq);
+        nanoseconds executeTime{eventExecuteTime};
+        totalExecuteTime += executeTime;
+
+        // if (event->getKind() == LevelZeroActionKind::Kernel) {
+        // kernelExecuteTime += executeTime;
+        // kernelsCnt += 1;
+        // IVLOG(2, "  Kernel '" << event->getName() << "' execute time: "
+        //                  << fp_milliseconds(executeTime).count() << "ms");
+        //}
+      }
+
+      std::cout << "Total Level Zero execution time: " << (fp_milliseconds(totalExecuteTime).count()) << "ms"
+                << std::endl;
+
       // cleanup
       lzu::free_memory(context, reinterpret_cast<void*>(input_data));
       lzu::free_memory(context, reinterpret_cast<void*>(input_data1));
