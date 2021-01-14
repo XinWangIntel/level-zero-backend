@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
 project(lz_test)
 
+#set(CMAKE_C_COMPILER "/usr/bin/clang-10")
+#set(CMAKE_CXX_COMPILER "/usr/bin/clang++-10")
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 add_compile_options(-std=c++17)
@@ -25,10 +28,12 @@ add_executable(test src/main.cpp)
 
 target_link_libraries(test lz_wrapper)
 
-set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
-set(destination ${CMAKE_INSTALL_PREFIX})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/kernels/spirv_0 ${CMAKE_CURRENT_BINARY_DIR}/spirv_0 COPYONLY)
 
-install(
-    FILES "${CMAKE_CURRENT_SOURCE_DIR}/kernels/spirv_0"
-    DESTINATION ${destination}
-)
+#set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
+#set(destination ${CMAKE_INSTALL_PREFIX})
+
+#install(
+#    FILES "${CMAKE_CURRENT_SOURCE_DIR}/kernels/spirv_0"
+#    DESTINATION ${destination}
+#)
